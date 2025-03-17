@@ -5,17 +5,52 @@
   "types": "dist/index.d.ts",
   "type": "module",
   "scripts": {
-    "build": "tsc && rsync -av --exclude 'node_modules' custom dist/ && npm version patch"
+    "build": "tsc && rsync -av --exclude 'node_modules' custom dist/ && npm version patch",
+    "prepare": "npm link adminforth"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": "",
+  "publishConfig": {
+    "access": "public"
+  },
+  "keywords": ["adminforth"],
+  "author": "devforth",
+  "license": "MIT",
+  "description": "AdminForth List In Place Edit Plugin",
   "devDependencies": {
-    "@types/node": "latest",
+    "@types/node": "^22.10.7",
+    "semantic-release": "^24.2.1",
+    "semantic-release-slack-bot": "^4.0.2",
     "typescript": "^5.7.3"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/devforth/adminforth-list-in-place-edit"
   },
   "dependencies": {
     "adminforth": "latest"
+    
+  },
+  "release": {
+    "plugins": [
+      "@semantic-release/commit-analyzer",
+      "@semantic-release/release-notes-generator",
+      "@semantic-release/npm",
+      "@semantic-release/github",
+      [
+        "semantic-release-slack-bot",
+        {
+          "notifyOnSuccess": true,
+          "notifyOnFail": true,
+          "slackIcon": ":package:",
+          "markdownReleaseNotes": true
+        }
+      ]
+    ],
+    "branches": [
+      "main",
+      {
+        "name": "next",
+        "prerelease": true
+      }
+    ]
   }
 }
