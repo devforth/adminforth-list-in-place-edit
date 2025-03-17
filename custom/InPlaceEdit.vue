@@ -14,7 +14,21 @@
 
     <!-- Edit mode -->
     <div v-else class="flex items-center min-w-full max-w-full gap-2">
+      <template v-if="column.isArray?.enabled">
+        <ArrayColumnValueInput
+          ref="input"
+          :source="source"
+          :column="column"
+          :value="editValue"
+          :currentValues="record"
+          :mode="mode"
+          :columnOptions="columnOptions"
+          :unmasked="{}"
+          @update:modelValue="editValue = $event"
+        />
+      </template>
       <ColumnValueInput
+        v-else
         ref="input"
         :column="column"
         :value="editValue"
@@ -50,8 +64,9 @@ import { ref } from 'vue';
 import { IconPenSolid, IconCheckOutline, IconXOutline } from '@iconify-prerendered/vue-flowbite';
 import { callAdminForthApi } from '@/utils';
 import { showErrorTost, showSuccesTost } from '@/composables/useFrontendApi';
-import ValueRenderer from './ValueRender.vue';
-import ColumnValueInput from './ColumnValueInput.vue';
+import ValueRenderer from '@/components/ValueRenderer.vue';
+import ColumnValueInput from '@/components/ColumnValueInput.vue';
+import ArrayColumnValueInput from '@/components/ArrayColumnValueInput.vue';
 
 const props = defineProps(['column', 'record', 'resource', 'adminUser', 'meta']);
 const isEditing = ref(false);
@@ -59,9 +74,12 @@ const editValue = ref(null);
 const saving = ref(false);
 const input = ref(null);
 const columnOptions = ref({});
+const mode = ref('edit');
 
 function startEdit() {
-  editValue.value = props.record[props.column.name];
+  editValue.value = props.column.isArray?.enabled 
+    ? [...(props.record[props.column.name] || [])]
+    : props.record[props.column.name];
   isEditing.value = true;
   // Focus input after render
   setTimeout(() => {
@@ -94,7 +112,6 @@ async function saveEdit() {
     }
 
     showSuccesTost('Field updated successfully');
-    // Update the local record with the new value
     props.record[props.column.name] = editValue.value;
     isEditing.value = false;
   } finally {

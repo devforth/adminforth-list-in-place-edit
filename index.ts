@@ -1,6 +1,6 @@
 import { AdminForthPlugin } from "adminforth";
 import type { IAdminForth, IHttpServer, AdminForthResourcePages, AdminForthResourceColumn, AdminForthDataTypes, AdminForthResource } from "adminforth";
-import type { PluginOptions } from './types';
+import type { PluginOptions } from './types.js';
 
 export default class ListInPlaceEditPlugin extends AdminForthPlugin {
   options: PluginOptions;
@@ -13,12 +13,10 @@ export default class ListInPlaceEditPlugin extends AdminForthPlugin {
   async modifyResourceConfig(adminforth: IAdminForth, resourceConfig: AdminForthResource) {
     super.modifyResourceConfig(adminforth, resourceConfig);
 
-    // Get columns that should have inplace edit
     const targetColumns = resourceConfig.columns.filter(col => 
       this.options.columns.includes(col.name)
     );
 
-    // Add inplace edit component for each target column
     targetColumns.forEach(column => {
       if (column.components?.list) {
         throw new Error(`Column ${column.name} already has a list component defined. ListInplaceEdit plugin cannot be used on columns that already have list components.`);
@@ -77,7 +75,6 @@ export default class ListInPlaceEditPlugin extends AdminForthPlugin {
           return { error: result.error };
         }
 
-        // Get fresh record data after update
         const updatedRecord = await connector.getRecordByPrimaryKey(resource, recordId);
         return { record: updatedRecord };
       }
