@@ -14,30 +14,15 @@
 
     <!-- Edit mode -->
     <div v-else class="flex items-center min-w-full max-w-full gap-2">
-      <template v-if="column.isArray?.enabled">
-        <ArrayColumnValueInput
-          ref="input"
-          :source="source"
-          :column="column"
-          :value="editValue"
-          :currentValues="record"
-          :mode="mode"
-          :columnOptions="columnOptions"
-          :unmasked="{}"
-          @update:modelValue="editValue = $event"
-        />
-      </template>
-      <ColumnValueInput
-        v-else
+      <ColumnValueInputWrapper
         ref="input"
+        :source="source"
         :column="column"
-        :value="editValue"
-        @update:modelValue="editValue = $event"
-        source="edit"
-        mode="edit"
-        :currentValues="record"
+        :currentValues="currentValues"
+        :mode="mode"
         :columnOptions="columnOptions"
-        :unmasked="{}"
+        :unmasked="unmasked"
+        :setCurrentValue="setCurrentValue"
       />
       <div class="flex gap-1">
         <button 
@@ -65,8 +50,7 @@ import { IconPenSolid, IconCheckOutline, IconXOutline } from '@iconify-prerender
 import { callAdminForthApi } from '@/utils';
 import { showErrorTost, showSuccesTost } from '@/composables/useFrontendApi';
 import ValueRenderer from '@/components/ValueRenderer.vue';
-import ColumnValueInput from '@/components/ColumnValueInput.vue';
-import ArrayColumnValueInput from '@/components/ArrayColumnValueInput.vue';
+import ColumnValueInputWrapper from '@/components/ColumnValueInputWrapper.vue';
 
 const props = defineProps(['column', 'record', 'resource', 'adminUser', 'meta']);
 const isEditing = ref(false);
@@ -75,21 +59,41 @@ const saving = ref(false);
 const input = ref(null);
 const columnOptions = ref({});
 const mode = ref('edit');
+const currentValues = ref({});
+const unmasked = ref({});
+const source = ref('edit');
 
 function startEdit() {
-  editValue.value = props.column.isArray?.enabled 
-    ? [...(props.record[props.column.name] || [])]
-    : props.record[props.column.name];
+  const value = props.record[props.column.name];
+  currentValues.value = {
+    [props.column.name]: props.column.isArray?.enabled 
+      ? (Array.isArray(value) ? value : [value]).filter(v => v !== null && v !== undefined)
+      : value
+  };
   isEditing.value = true;
-  // Focus input after render
-  setTimeout(() => {
-    input.value?.focus();
-  }, 0);
 }
 
 function cancelEdit() {
   isEditing.value = false;
   editValue.value = null;
+}
+
+function setCurrentValue(columnName, value, arrayIndex = undefined) {
+  if (arrayIndex !== undefined && props.column.isArray?.enabled) {
+    // Handle array updates
+    const currentArray = [...(currentValues.value[columnName] || [])];
+    if (arrayIndex >= currentArray.length) {
+      currentArray.push(value);
+    } else {
+      currentArray[arrayIndex] = value;
+    }
+    currentValues.value[columnName] = currentArray;
+    editValue.value = currentArray;
+  } else {
+    // Handle non-array updates
+    currentValues.value[columnName] = value;
+    editValue.value = value;
+  }
 }
 
 async function saveEdit() {
@@ -102,7 +106,7 @@ async function saveEdit() {
         resourceId: props.resource.resourceId,
         recordId: props.record._primaryKeyValue,
         field: props.column.name,
-        value: editValue.value
+        value: currentValues.value[props.column.name]
       }
     });
 
@@ -112,7 +116,7 @@ async function saveEdit() {
     }
 
     showSuccesTost('Field updated successfully');
-    props.record[props.column.name] = editValue.value;
+    props.record[props.column.name] = currentValues.value[props.column.name];
     isEditing.value = false;
   } finally {
     saving.value = false;
