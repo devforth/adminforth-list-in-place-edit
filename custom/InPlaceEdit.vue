@@ -16,7 +16,7 @@
     <div v-else class="flex items-center min-w-full max-w-full gap-2">
       <ColumnValueInputWrapper
         ref="input"
-        :source="source"
+        :source="'edit'"
         :column="column"
         :currentValues="currentValues"
         :mode="mode"
@@ -61,7 +61,6 @@ const columnOptions = ref({});
 const mode = ref('edit');
 const currentValues = ref({});
 const unmasked = ref({});
-const source = ref('edit');
 
 function startEdit() {
   const value = props.record[props.column.name];
@@ -78,20 +77,33 @@ function cancelEdit() {
   editValue.value = null;
 }
 
-function setCurrentValue(columnName, value, arrayIndex = undefined) {
+function setCurrentValue(field, value, arrayIndex = undefined) {
   if (arrayIndex !== undefined && props.column.isArray?.enabled) {
     // Handle array updates
-    const currentArray = [...(currentValues.value[columnName] || [])];
-    if (arrayIndex >= currentArray.length) {
-      currentArray.push(value);
-    } else {
-      currentArray[arrayIndex] = value;
+    if (!Array.isArray(currentValues.value[field])) {
+      currentValues.value[field] = [];
     }
-    currentValues.value[columnName] = currentArray;
-    editValue.value = currentArray;
+    
+    const newArray = [...currentValues.value[field]];
+    
+    if (arrayIndex >= newArray.length) {
+      // When adding a new item, always add null
+      newArray.push(null);
+    } else {
+      // For existing items, handle type conversion
+      if (props.column.isArray?.itemType && ['integer', 'float', 'decimal'].includes(props.column.isArray.itemType)) {
+        newArray[arrayIndex] = value !== null && value !== '' ? +value : null;
+      } else {
+        newArray[arrayIndex] = value;
+      }
+    }
+    
+    // Assign the new array
+    currentValues.value[field] = newArray;
+    editValue.value = newArray;
   } else {
     // Handle non-array updates
-    currentValues.value[columnName] = value;
+    currentValues.value[field] = value;
     editValue.value = value;
   }
 }
