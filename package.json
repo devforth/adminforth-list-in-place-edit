@@ -1,5 +1,5 @@
 {
-  "name": "adminforth-list-in-place-edit",
+  "name": "@adminforth/list-in-place-edit",
   "version": "1.0.2",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
