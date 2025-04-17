@@ -51,7 +51,9 @@ import { callAdminForthApi } from '@/utils';
 import { showErrorTost, showSuccesTost } from '@/composables/useFrontendApi';
 import ValueRenderer from '@/components/ValueRenderer.vue';
 import ColumnValueInputWrapper from '@/components/ColumnValueInputWrapper.vue';
+import { useI18n } from 'vue-i18n';
 
+const { t } = useI18n();
 const props = defineProps(['column', 'record', 'resource', 'adminUser', 'meta']);
 const isEditing = ref(false);
 const editValue = ref(null);
@@ -127,7 +129,7 @@ async function saveEdit() {
       return;
     }
 
-    showSuccesTost('Field updated successfully');
+    showSuccesTost(t('Field updated successfully'));
     props.record[props.column.name] = currentValues.value[props.column.name];
     isEditing.value = false;
   } finally {
