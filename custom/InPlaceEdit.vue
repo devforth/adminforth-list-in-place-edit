@@ -13,9 +13,10 @@
     </div>
 
     <!-- Edit mode -->
-    <div v-else class="flex items-center min-w-full max-w-full gap-2">
+    <div v-else class="flex items-center gap-2 min-w-[200px]">
       <ColumnValueInputWrapper
         ref="input"
+        class="flex-grow"
         :source="'edit'"
         :column="column"
         :currentValues="currentValues"
@@ -27,8 +28,11 @@
       <div class="flex gap-1">
         <button 
           @click="saveEdit"
-          :disabled="saving"
-          class="text-green-600 hover:text-green-700 dark:text-green-500 dark:hover:text-green-400"
+          :disabled="!isChanged || saving"
+          :class="[
+            'text-green-600 dark:text-green-500 hover:text-green-700 dark:hover:text-green-400',
+            (!isChanged || saving) ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''
+          ]"
         >
           <IconCheckOutline class="w-5 h-5" />
         </button>
@@ -45,7 +49,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { IconPenSolid, IconCheckOutline, IconXOutline } from '@iconify-prerendered/vue-flowbite';
 import { callAdminForthApi } from '@/utils';
 import { showErrorTost, showSuccesTost } from '@/composables/useFrontendApi';
@@ -63,6 +67,12 @@ const columnOptions = ref({});
 const mode = ref('edit');
 const currentValues = ref({});
 const unmasked = ref({});
+const isChanged = computed(() => {
+  const original = props.record[props.column.name];
+  const current = currentValues.value[props.column.name];
+
+  return JSON.stringify(original) !== JSON.stringify(current);
+});
 
 function startEdit() {
   const value = props.record[props.column.name];
