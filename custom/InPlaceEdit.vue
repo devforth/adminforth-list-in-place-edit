@@ -13,10 +13,10 @@
     </div>
 
     <!-- Edit mode -->
-    <div v-else class="flex items-center gap-2 min-w-[200px]">
+    <div v-else class="flex items-center gap-2 min-w-[200px] w-full">
       <ColumnValueInputWrapper
         ref="input"
-        class="flex-grow"
+        class="flex-grow w-full"
         :source="'edit'"
         :column="column"
         :currentValues="currentValues"
