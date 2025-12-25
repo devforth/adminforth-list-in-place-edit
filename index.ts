@@ -18,7 +18,7 @@ export default class ListInPlaceEditPlugin extends AdminForthPlugin {
     );
 
     targetColumns.forEach(column => {
-      if (column.components?.list) {
+      if (column.components?.list && (typeof column.components.list === 'object' && column.components.list.file !== this.componentPath('InPlaceEdit.vue'))) {
         throw new Error(`Column ${column.name} already has a list component defined. ListInplaceEdit plugin cannot be used on columns that already have list components.`);
       }
       
