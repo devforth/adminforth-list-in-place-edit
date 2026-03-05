@@ -5,8 +5,7 @@
   "types": "dist/index.d.ts",
   "type": "module",
   "scripts": {
-    "build": "tsc && rsync -av --exclude 'node_modules' custom dist/",
-    "prepare": "npm link adminforth"
+    "build": "tsc && rsync -av --exclude 'node_modules' custom dist/"
   },
   "publishConfig": {
     "access": "public"
@@ -31,7 +30,7 @@
     "vue-i18n": "^11.1.3"
   },
   "peerDependencies": {
-    "adminforth": "next"
+    "adminforth": "^2.24.0"
   },
   "release": {
     "plugins": [
@@ -42,6 +41,7 @@
       [
         "semantic-release-slack-bot",
         {
+          "packageName": "@adminforth/list-in-place-edit",
           "notifyOnSuccess": true,
           "notifyOnFail": true,
           "slackIcon": ":package:",
