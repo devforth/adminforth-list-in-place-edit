@@ -14,7 +14,7 @@
   "keywords": [
     "adminforth"
   ],
-  "author": "devforth",
+  "author": "DevForth (https://devforth.io)",
   "license": "MIT",
   "description": "AdminForth List In Place Edit Plugin",
   "devDependencies": {
