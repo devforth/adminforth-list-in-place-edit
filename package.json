@@ -4,6 +4,7 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "type": "module",
+  "homepage": "https://adminforth.dev/docs/tutorial/Plugins/list-in-place-edit/",
   "scripts": {
     "build": "tsc && rsync -av --exclude 'node_modules' custom dist/"
   },
@@ -18,7 +19,7 @@
   "description": "AdminForth List In Place Edit Plugin",
   "devDependencies": {
     "@types/node": "^22.10.7",
-    "adminforth": "^2.35.0",
+    "adminforth": "^2.42.0",
     "semantic-release": "^24.2.1",
     "semantic-release-slack-bot": "^4.0.2",
     "typescript": "^5.7.3"
@@ -31,7 +32,7 @@
     "vue-i18n": "^11.1.3"
   },
   "peerDependencies": {
-    "adminforth": "^2.35.0"
+    "adminforth": "^2.42.0"
   },
   "release": {
     "plugins": [
