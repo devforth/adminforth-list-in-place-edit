@@ -55,8 +55,16 @@ export default class ListInPlaceEditPlugin extends AdminForthPlugin {
       path: `/plugin/${this.pluginInstanceId}/update-field`,
       handler: async ({ body, adminUser }) => {
         const { resourceId, recordId, field, value } = body;
-
+        if (this.resourceConfig.resourceId !== resourceId) {
+          return { error: 'Resource ID mismatch' };
+        }
+        if (!this.options.columns.includes(field)) {
+          return { error: 'Field not allowed to be edited' };
+        }
         const resource = this.adminforth.config.resources.find(r => r.resourceId === resourceId);
+        if (resource.columns.some(c => c.name === field && c.backendOnly === true)) {
+          return { error: 'Field is not editable, because it is marked as backendOnly' };
+        }
         // Create update object with just the single field
         const updateRecord = { [field]: value };
         
