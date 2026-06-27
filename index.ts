@@ -1,4 +1,4 @@
-import { AdminForthPlugin } from "adminforth";
+import { AdminForthPlugin, interpretResource, ActionCheckSource, AllowedActionsEnum } from "adminforth";
 import type { IAdminForth, IHttpServer, AdminForthResourcePages, AdminForthResourceColumn, AdminForthDataTypes, AdminForthResource } from "adminforth";
 import type { PluginOptions } from './types.js';
 
@@ -62,15 +62,46 @@ export default class ListInPlaceEditPlugin extends AdminForthPlugin {
           return { error: 'Field not allowed to be edited' };
         }
         const resource = this.adminforth.config.resources.find(r => r.resourceId === resourceId);
-        if (resource.columns.some(c => c.name === field && c.backendOnly === true)) {
+        if (!resource) {
+          return { error: `Resource '${resourceId}' not found` };
+        }
+        const column = resource.columns.find(c => c.name === field);
+        if (!column) {
+          return { error: 'Field not allowed to be edited' };
+        }
+        if (column.primaryKey) {
+          return { error: 'Primary key field cannot be edited' };
+        }
+        if (column.backendOnly === true) {
           return { error: 'Field is not editable, because it is marked as backendOnly' };
+        }
+        if (column.editReadonly === true) {
+          return { error: 'Field is not editable, because it is marked as editReadonly' };
         }
         // Create update object with just the single field
         const updateRecord = { [field]: value };
-        
+
         // Use AdminForth's built-in update method
         const connector = this.adminforth.connectors[resource.dataSource];
         const oldRecord = await connector.getRecordByPrimaryKey(resource, recordId)
+        if (!oldRecord) {
+          return { error: 'Record not found' };
+        }
+
+        // Enforce the resource's edit permission for this specific record
+        // (mirrors the core /update_record access check, since updateResourceRecord does not check ACL).
+        const { allowedActions } = await interpretResource(
+          adminUser,
+          resource,
+          { requestBody: body, newRecord: updateRecord, oldRecord, pk: recordId },
+          ActionCheckSource.EditRequest,
+          this.adminforth
+        );
+        const editAllowed = allowedActions[AllowedActionsEnum.edit] as boolean | string | undefined;
+        if (editAllowed !== true) {
+          return { error: typeof editAllowed === 'string' ? editAllowed : 'You do not have permission to edit this record' };
+        }
+
         const result = await this.adminforth.updateResourceRecord({
           resource,
           recordId,
