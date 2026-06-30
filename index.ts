@@ -1,4 +1,4 @@
-import { AdminForthPlugin, interpretResource, ActionCheckSource, AllowedActionsEnum } from "adminforth";
+import { AdminForthPlugin, parseBody, interpretResource, ActionCheckSource, AllowedActionsEnum } from "adminforth";
 import type { IAdminForth, IHttpServer, AdminForthResourcePages, AdminForthResourceColumn, AdminForthDataTypes, AdminForthResource } from "adminforth";
 import type { PluginOptions } from './types.js';
 import { z } from "zod";
@@ -16,22 +16,6 @@ export default class ListInPlaceEditPlugin extends AdminForthPlugin {
   constructor(options: PluginOptions) {
     super(options, import.meta.url);
     this.options = options;
-  }
-
-  private parseBody<T>(
-    schema: z.ZodType<T>,
-    body: unknown,
-    response: { setStatus: (code: number, message: string) => void },
-  ): { ok: true; data: T } | { ok: false; error: { error: string; details: unknown } } {
-    const parsed = schema.safeParse(body ?? {});
-    if (!parsed.success) {
-      response.setStatus(400, '');
-      return {
-        ok: false,
-        error: { error: 'Request body validation failed', details: parsed.error.issues },
-      };
-    }
-    return { ok: true, data: parsed.data };
   }
 
   async modifyResourceConfig(adminforth: IAdminForth, resourceConfig: AdminForthResource) {
@@ -78,7 +62,7 @@ export default class ListInPlaceEditPlugin extends AdminForthPlugin {
       method: 'POST',
       path: `/plugin/${this.pluginInstanceId}/update-field`,
       handler: async ({ body, adminUser, response }) => {
-        const parsed = this.parseBody(updateFieldBodySchema, body, response);
+        const parsed = parseBody(updateFieldBodySchema, body, response);
         if ('error' in parsed) return parsed.error;
         const data = parsed.data;
         const { resourceId, recordId, field, value } = data;
