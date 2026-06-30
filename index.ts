@@ -1,6 +1,14 @@
-import { AdminForthPlugin, interpretResource, ActionCheckSource, AllowedActionsEnum } from "adminforth";
+import { AdminForthPlugin, parseBody, interpretResource, ActionCheckSource, AllowedActionsEnum } from "adminforth";
 import type { IAdminForth, IHttpServer, AdminForthResourcePages, AdminForthResourceColumn, AdminForthDataTypes, AdminForthResource } from "adminforth";
 import type { PluginOptions } from './types.js';
+import { z } from "zod";
+
+const updateFieldBodySchema = z.object({
+  resourceId: z.string(),
+  recordId: z.union([z.string(), z.number()]),
+  field: z.string(),
+  value: z.unknown(),
+}).strict();
 
 export default class ListInPlaceEditPlugin extends AdminForthPlugin {
   options: PluginOptions;
@@ -53,8 +61,11 @@ export default class ListInPlaceEditPlugin extends AdminForthPlugin {
     server.endpoint({
       method: 'POST',
       path: `/plugin/${this.pluginInstanceId}/update-field`,
-      handler: async ({ body, adminUser }) => {
-        const { resourceId, recordId, field, value } = body;
+      handler: async ({ body, adminUser, response }) => {
+        const parsed = parseBody(updateFieldBodySchema, body, response);
+        if ('error' in parsed) return parsed.error;
+        const data = parsed.data;
+        const { resourceId, recordId, field, value } = data;
         if (this.resourceConfig.resourceId !== resourceId) {
           return { error: 'Resource ID mismatch' };
         }
@@ -83,7 +94,7 @@ export default class ListInPlaceEditPlugin extends AdminForthPlugin {
 
         // Use AdminForth's built-in update method
         const connector = this.adminforth.connectors[resource.dataSource];
-        const oldRecord = await connector.getRecordByPrimaryKey(resource, recordId)
+        const oldRecord = await connector.getRecordByPrimaryKey(resource, recordId as string)
         if (!oldRecord) {
           return { error: 'Record not found' };
         }
@@ -114,7 +125,7 @@ export default class ListInPlaceEditPlugin extends AdminForthPlugin {
           return { error: result.error };
         }
 
-        const updatedRecord = await connector.getRecordByPrimaryKey(resource, recordId);
+        const updatedRecord = await connector.getRecordByPrimaryKey(resource, recordId as string);
         return { record: updatedRecord };
       }
     });
