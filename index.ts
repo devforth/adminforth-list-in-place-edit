@@ -22,13 +22,16 @@ export default class ListInPlaceEditPlugin extends AdminForthPlugin {
     schema: z.ZodType<T>,
     body: unknown,
     response: { setStatus: (code: number, message: string) => void },
-  ): T | null {
+  ): { ok: true; data: T } | { ok: false; error: { error: string; details: unknown } } {
     const parsed = schema.safeParse(body ?? {});
     if (!parsed.success) {
-      response.setStatus(422, parsed.error.message);
-      return null;
+      response.setStatus(400, '');
+      return {
+        ok: false,
+        error: { error: 'Request body validation failed', details: parsed.error.issues },
+      };
     }
-    return parsed.data;
+    return { ok: true, data: parsed.data };
   }
 
   async modifyResourceConfig(adminforth: IAdminForth, resourceConfig: AdminForthResource) {
@@ -75,8 +78,9 @@ export default class ListInPlaceEditPlugin extends AdminForthPlugin {
       method: 'POST',
       path: `/plugin/${this.pluginInstanceId}/update-field`,
       handler: async ({ body, adminUser, response }) => {
-        const data = this.parseBody(updateFieldBodySchema, body, response);
-        if (!data) return;
+        const parsed = this.parseBody(updateFieldBodySchema, body, response);
+        if ('error' in parsed) return parsed.error;
+        const data = parsed.data;
         const { resourceId, recordId, field, value } = data;
         if (this.resourceConfig.resourceId !== resourceId) {
           return { error: 'Resource ID mismatch' };
