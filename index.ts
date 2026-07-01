@@ -1,4 +1,4 @@
-import { AdminForthPlugin, parseBody, interpretResource, ActionCheckSource, AllowedActionsEnum } from "adminforth";
+import { AdminForthPlugin, interpretResource, ActionCheckSource, AllowedActionsEnum } from "adminforth";
 import type { IAdminForth, IHttpServer, AdminForthResourcePages, AdminForthResourceColumn, AdminForthDataTypes, AdminForthResource } from "adminforth";
 import type { PluginOptions } from './types.js';
 import { z } from "zod";
@@ -61,10 +61,9 @@ export default class ListInPlaceEditPlugin extends AdminForthPlugin {
     server.endpoint({
       method: 'POST',
       path: `/plugin/${this.pluginInstanceId}/update-field`,
-      handler: async ({ body, adminUser, response }) => {
-        const parsed = parseBody(updateFieldBodySchema, body, response);
-        if ('error' in parsed) return parsed.error;
-        const data = parsed.data;
+      request_schema: updateFieldBodySchema,
+      handler: async ({ body, adminUser }) => {
+        const data = body as z.infer<typeof updateFieldBodySchema>;
         const { resourceId, recordId, field, value } = data;
         if (this.resourceConfig.resourceId !== resourceId) {
           return { error: 'Resource ID mismatch' };
