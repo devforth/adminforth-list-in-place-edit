@@ -1,4 +1,4 @@
-import { AdminForthPlugin, interpretResource, ActionCheckSource, AllowedActionsEnum } from "adminforth";
+import { AdminForthPlugin, interpretResource, ActionCheckSource, AllowedActionsEnum, recordWriteError, stripBackendOnly } from "adminforth";
 import type { IAdminForth, IHttpServer, AdminForthResourcePages, AdminForthResourceColumn, AdminForthDataTypes, AdminForthResource } from "adminforth";
 import type { PluginOptions } from './types.js';
 import { z } from "zod";
@@ -82,12 +82,6 @@ export default class ListInPlaceEditPlugin extends AdminForthPlugin {
         if (column.primaryKey) {
           return { error: 'Primary key field cannot be edited' };
         }
-        if (column.backendOnly === true) {
-          return { error: 'Field is not editable, because it is marked as backendOnly' };
-        }
-        if (column.editReadonly === true) {
-          return { error: 'Field is not editable, because it is marked as editReadonly' };
-        }
         // Create update object with just the single field
         const updateRecord = { [field]: value };
 
@@ -98,18 +92,26 @@ export default class ListInPlaceEditPlugin extends AdminForthPlugin {
           return { error: 'Record not found' };
         }
 
+        const editMeta = { requestBody: body, newRecord: updateRecord, oldRecord, pk: recordId };
+        const editCtx = { adminUser, resource, meta: editMeta, source: ActionCheckSource.EditRequest, adminforth: this.adminforth };
+
         // Enforce the resource's edit permission for this specific record
         // (mirrors the core /update_record access check, since updateResourceRecord does not check ACL).
         const { allowedActions } = await interpretResource(
           adminUser,
           resource,
-          { requestBody: body, newRecord: updateRecord, oldRecord, pk: recordId },
+          editMeta,
           ActionCheckSource.EditRequest,
           this.adminforth
         );
         const editAllowed = allowedActions[AllowedActionsEnum.edit] as boolean | string | undefined;
         if (editAllowed !== true) {
           return { error: typeof editAllowed === 'string' ? editAllowed : 'You do not have permission to edit this record' };
+        }
+
+        const writeError = await recordWriteError(updateRecord, 'edit', editCtx);
+        if (writeError) {
+          return { error: writeError };
         }
 
         const result = await this.adminforth.updateResourceRecord({
@@ -125,6 +127,11 @@ export default class ListInPlaceEditPlugin extends AdminForthPlugin {
         }
 
         const updatedRecord = await connector.getRecordByPrimaryKey(resource, recordId as string);
+        if (updatedRecord) {
+          await stripBackendOnly(updatedRecord, { ...editCtx, meta: { requestBody: body, pk: recordId }, source: ActionCheckSource.EditLoadRequest });
+          // _label is not a declared column, so stripBackendOnly would drop it: set it after
+          updatedRecord._label = resource.recordLabel(updatedRecord);
+        }
         return { record: updatedRecord };
       }
     });
