@@ -129,8 +129,6 @@ export default class ListInPlaceEditPlugin extends AdminForthPlugin {
         const updatedRecord = await connector.getRecordByPrimaryKey(resource, recordId as string);
         if (updatedRecord) {
           await stripBackendOnly(updatedRecord, { ...editCtx, meta: { requestBody: body, pk: recordId }, source: ActionCheckSource.EditLoadRequest });
-          // _label is not a declared column, so stripBackendOnly would drop it: set it after
-          updatedRecord._label = resource.recordLabel(updatedRecord);
         }
         return { record: updatedRecord };
       }
