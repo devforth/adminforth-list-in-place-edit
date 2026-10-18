@@ -3,13 +3,16 @@
     <!-- Normal value display -->
     <div v-if="!isEditing" class="flex items-center">
       <ValueRenderer :column="column" :record="record" />
-      <button 
+      <Button
         v-if="!column.editReadonly"
         @click="startEdit"
-        class="ml-2 opacity-0 group-hover:opacity-100 transition-opacity"
+        variant="ghost"
+        size="sm"
+        iconOnly
+        class="ml-1 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition"
       >
-        <IconPenSolid class="w-5 h-5 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"/>
-      </button>
+        <IconPencil />
+      </Button>
     </div>
 
     <!-- Edit mode -->
@@ -26,23 +29,22 @@
         :setCurrentValue="setCurrentValue"
       />
       <div class="flex gap-1">
-        <button 
+        <Button
           @click="saveEdit"
           :disabled="!isChanged || saving"
-          :class="[
-            'text-green-600 dark:text-green-500 hover:text-green-700 dark:hover:text-green-400',
-            (!isChanged || saving) ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''
-          ]"
+          :loader="saving"
+          iconOnly
         >
-          <IconCheckOutline class="w-5 h-5" />
-        </button>
-        <button 
+          <IconCheck />
+        </Button>
+        <Button
           @click="cancelEdit"
           :disabled="saving"
-          class="text-red-600 hover:text-red-700 dark:text-red-500 dark:hover:text-red-400"
+          variant="secondary"
+          iconOnly
         >
-          <IconXOutline class="w-5 h-5" />
-        </button>
+          <IconX />
+        </Button>
       </div>
     </div>
   </div>
@@ -50,7 +52,8 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import { IconPenSolid, IconCheckOutline, IconXOutline } from '@iconify-prerendered/vue-flowbite';
+import { IconPencil, IconCheck, IconX } from '@iconify-prerendered/vue-lucide';
+import { Button } from '@/afcl';
 import { callAdminForthApi } from '@/utils';
 import { showErrorTost, showSuccesTost } from '@/composables/useFrontendApi';
 import ValueRenderer from '@/components/ValueRenderer.vue';
