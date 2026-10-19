@@ -115,7 +115,7 @@ export default class ListInPlaceEditPlugin extends AdminForthPlugin {
         const result = await this.adminforth.updateResourceRecord({
           resource,
           recordId,
-          record: updateRecord,
+          updates: updateRecord,
           oldRecord,
           adminUser
         });
@@ -125,6 +125,7 @@ export default class ListInPlaceEditPlugin extends AdminForthPlugin {
         }
 
         const updatedRecord = await connector.getRecordByPrimaryKey(resource, recordId as string);
+        
         return { record: updatedRecord };
       }
     });
