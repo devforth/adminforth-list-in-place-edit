@@ -61,6 +61,7 @@ export default class ListInPlaceEditPlugin extends AdminForthPlugin {
     server.endpoint({
       method: 'POST',
       path: `/plugin/${this.pluginInstanceId}/update-field`,
+      agent: { hiddenFromAgents: true },
       request_schema: updateFieldBodySchema,
       handler: async ({ body, adminUser }) => {
         const data = body as z.infer<typeof updateFieldBodySchema>;
