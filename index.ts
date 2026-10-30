@@ -1,4 +1,4 @@
-import { AdminForthPlugin, interpretResource, ActionCheckSource, AllowedActionsEnum } from "adminforth";
+import { AdminForthPlugin } from "adminforth";
 import type { IAdminForth, IHttpServer, AdminForthResourcePages, AdminForthResourceColumn, AdminForthDataTypes, AdminForthResource } from "adminforth";
 import type { PluginOptions } from './types.js';
 import { z } from "zod";
@@ -33,6 +33,8 @@ export default class ListInPlaceEditPlugin extends AdminForthPlugin {
       if (!column.components) {
         column.components = {};
       }
+      // the column is edited right in the list, so it stays writable even when the edit form hides it
+      column.allowModifyWhenNotShowInEdit = true;
       column.components.list = {
         file: this.componentPath('InPlaceEdit.vue'),
         meta: {
@@ -63,7 +65,7 @@ export default class ListInPlaceEditPlugin extends AdminForthPlugin {
       path: `/plugin/${this.pluginInstanceId}/update-field`,
       agent: { hiddenFromAgents: true },
       request_schema: updateFieldBodySchema,
-      handler: async ({ body, adminUser }) => {
+      handler: async ({ body, adminUser, query, headers, cookies, requestUrl, response }) => {
         const data = body as z.infer<typeof updateFieldBodySchema>;
         const { resourceId, recordId, field, value } = data;
         if (this.resourceConfig.resourceId !== resourceId) {
@@ -83,51 +85,20 @@ export default class ListInPlaceEditPlugin extends AdminForthPlugin {
         if (column.primaryKey) {
           return { error: 'Primary key field cannot be edited' };
         }
-        if (column.backendOnly === true) {
-          return { error: 'Field is not editable, because it is marked as backendOnly' };
-        }
-        if (column.editReadonly === true) {
-          return { error: 'Field is not editable, because it is marked as editReadonly' };
-        }
-        // Create update object with just the single field
-        const updateRecord = { [field]: value };
 
-        // Use AdminForth's built-in update method
-        const connector = this.adminforth.connectors[resource.dataSource];
-        const oldRecord = await connector.getRecordByPrimaryKey(resource, recordId as string)
-        if (!oldRecord) {
-          return { error: 'Record not found' };
-        }
-
-        // Enforce the resource's edit permission for this specific record
-        // (mirrors the core /update_record access check, since updateResourceRecord does not check ACL).
-        const { allowedActions } = await interpretResource(
-          adminUser,
-          resource,
-          { requestBody: body, newRecord: updateRecord, oldRecord, pk: recordId },
-          ActionCheckSource.EditRequest,
-          this.adminforth
-        );
-        const editAllowed = allowedActions[AllowedActionsEnum.edit] as boolean | string | undefined;
-        if (editAllowed !== true) {
-          return { error: typeof editAllowed === 'string' ? editAllowed : 'You do not have permission to edit this record' };
-        }
-
-        const result = await this.adminforth.updateResourceRecord({
-          resource,
-          recordId,
-          updates: updateRecord,
-          oldRecord,
-          adminUser
-        });
+        // the edit permission, the row scope and the column rules are enforced by asUser().update()
+        const result = await this.adminforth.resource(resourceId)
+          .asUser(adminUser, {
+            meta: { requestBody: body },
+            extra: { body, query, headers, cookies, requestUrl, response },
+          })
+          .update(recordId, { [field]: value });
 
         if (result.error) {
           return { error: result.error };
         }
 
-        const updatedRecord = await connector.getRecordByPrimaryKey(resource, recordId as string);
-        
-        return { record: updatedRecord };
+        return { ok: true };
       }
     });
   }
